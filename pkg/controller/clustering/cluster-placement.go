@@ -240,38 +240,34 @@ func SameZone(zone string, nodes redis.Nodes) bool {
 	return false
 }
 
-func primaryIndex(primary *redis.Node, nodes []string) int {
-	primaryIndex := 0
-	for i, node := range nodes {
-		if node == primary.Pod.Spec.NodeName {
-			primaryIndex = i
-			break
+func nodeIndex(node *redis.Node, nodes []string) int {
+	for i, nodeName := range nodes {
+		if nodeName == node.Pod.Spec.NodeName {
+			return i
 		}
 	}
-	return primaryIndex
+	return 0
 }
 
-func isNodeNameUnique(nodes []string, replica *redis.Node) bool {
-	isUnique := true
-	for _, node := range nodes {
-		if node == replica.Pod.Spec.NodeName {
-			isUnique = false
-			break
+func isNodeNameUnique(node *redis.Node, nodes []string) bool {
+	for _, nodeName := range nodes {
+		if nodeName == node.Pod.Spec.NodeName {
+			return false
 		}
 	}
-	return isUnique
+	return true
 }
 
 func uniqueNodesInZone(primaryToReplicas map[string]redis.Nodes, zoneReplicas redis.Nodes, zone string) []string {
 	var nodes []string
 	for _, replica := range zoneReplicas {
-		if isNodeNameUnique(nodes, replica) {
+		if isNodeNameUnique(replica, nodes) {
 			nodes = append(nodes, replica.Pod.Spec.NodeName)
 		}
 	}
 	for _, replicas := range primaryToReplicas {
 		for _, replica := range replicas {
-			if zone == replica.Zone && isNodeNameUnique(nodes, replica) {
+			if zone == replica.Zone && isNodeNameUnique(replica, nodes) {
 				nodes = append(nodes, replica.Pod.Spec.NodeName)
 			}
 		}
@@ -283,7 +279,8 @@ func uniqueNodesInZone(primaryToReplicas map[string]redis.Nodes, zoneReplicas re
 func selectOptimalZoneReplicaIndex(primary *redis.Node, primaryToReplicas map[string]redis.Nodes, zoneReplicas redis.Nodes) int {
 	numReplicas := len(primaryToReplicas[primary.ID])
 	nodes := uniqueNodesInZone(primaryToReplicas, zoneReplicas, primary.Zone)
-	nodeName := nodes[(primaryIndex(primary, nodes)+numReplicas+1)%len(nodes)]
+	primaryIndex := nodeIndex(primary, nodes)
+	nodeName := nodes[(primaryIndex+numReplicas+1)%len(nodes)]
 	for i, replica := range zoneReplicas {
 		if nodeName == replica.Pod.Spec.NodeName {
 			return i
