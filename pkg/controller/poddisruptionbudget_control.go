@@ -79,7 +79,7 @@ func (s *PodDisruptionBudgetsControl) CreateRedisClusterPodDisruptionBudget(redi
 
 	}
 
-	desiredAnnotations, err := pod.GetAnnotationsSet(redisCluster)
+	desiredAnnotations, err := pod.GetClusterAnnotationsSet(redisCluster)
 	if err != nil {
 		return nil, err
 	}

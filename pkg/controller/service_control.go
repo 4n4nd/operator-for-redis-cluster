@@ -63,7 +63,7 @@ func (s *ServicesControl) CreateRedisClusterService(redisCluster *rapi.RedisClus
 
 	}
 
-	desiredAnnotations, err := pod.GetAnnotationsSet(redisCluster)
+	desiredAnnotations, err := pod.GetClusterAnnotationsSet(redisCluster)
 	if err != nil {
 		return nil, err
 	}

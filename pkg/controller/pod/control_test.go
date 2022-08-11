@@ -60,6 +60,48 @@ func Test_initPod(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "annotations merged and passed",
+			args: args{
+				redisCluster: &rapi.RedisCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "testcluster",
+						Namespace: "foo",
+						Annotations: map[string]string{
+							"annotation1": "foo",
+						},
+					},
+					Spec: rapi.RedisClusterSpec{
+						PodTemplate: &kapiv1.PodTemplateSpec{
+							ObjectMeta: metav1.ObjectMeta{
+								Annotations: map[string]string{
+									"annotation2": "bar",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &kapiv1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "rediscluster-testcluster-",
+					Namespace:    "foo",
+					OwnerReferences: []metav1.OwnerReference{{
+						Name:       "testcluster",
+						APIVersion: rapi.GroupVersion.String(),
+						Kind:       rapi.ResourceKind,
+						Controller: boolPtr(true),
+					}},
+					Labels: map[string]string{rapi.ClusterNameLabelKey: "testcluster"},
+					Annotations: map[string]string{
+						rapi.PodSpecMD5LabelKey: string(emptyPodSpecMD5),
+						"annotation1":           "foo",
+						"annotation2":           "bar",
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

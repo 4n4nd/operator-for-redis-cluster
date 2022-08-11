@@ -35,11 +35,26 @@ func CreateRedisClusterLabelSelector(cluster *rapi.RedisCluster) (labels.Selecto
 	return labels.SelectorFromSet(set), nil
 }
 
-// GetAnnotationsSet return a labels.Set of annotation from the RedisCluster
-func GetAnnotationsSet(cluster *rapi.RedisCluster) (labels.Set, error) {
+// GetClusterAnnotationsSet return a labels.Set of annotations from the RedisCluster
+func GetClusterAnnotationsSet(cluster *rapi.RedisCluster) (labels.Set, error) {
 	desiredAnnotations := make(labels.Set)
 	for k, v := range cluster.Annotations {
 		desiredAnnotations[k] = v
+	}
+	return desiredAnnotations, nil
+}
+
+// GetAnnotationsSet return a labels.Set of annotations from the RedisCluster and the PodTemplate
+func GetAnnotationsSet(cluster *rapi.RedisCluster) (labels.Set, error) {
+	desiredAnnotations, err := GetClusterAnnotationsSet(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	if cluster.Spec.PodTemplate != nil {
+		for k, v := range cluster.Spec.PodTemplate.Annotations {
+			desiredAnnotations[k] = v
+		}
 	}
 	return desiredAnnotations, nil
 }
