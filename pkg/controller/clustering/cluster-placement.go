@@ -280,13 +280,22 @@ func selectOptimalZoneReplicaIndex(primary *redis.Node, primaryToReplicas map[st
 	numReplicas := len(primaryToReplicas[primary.ID])
 	nodes := uniqueNodesInZone(primaryToReplicas, zoneReplicas, primary.Zone)
 	primaryIndex := nodeIndex(primary, nodes)
-	nodeName := nodes[(primaryIndex+numReplicas+1)%len(nodes)]
+	replicaIndex := (primaryIndex + numReplicas + 1) % len(nodes)
+	replicaNodeName := nodes[replicaIndex]
+	zoneReplicaIndex := 0
+	replicaType := "suboptimal"
+	zoneReplica := zoneReplicas[0]
 	for i, replica := range zoneReplicas {
-		if nodeName == replica.Pod.Spec.NodeName {
-			return i
+		if replicaNodeName == replica.Pod.Spec.NodeName {
+			zoneReplicaIndex = i
+			replicaType = "optimal"
+			zoneReplica = replica
+			break
 		}
 	}
-	return 0
+	glog.V(4).Infof("found replica (%s) %s for primary %s on node %s. primary is on %s. primary index: %d, replica index: %d, replica node name: %s, nodes: %v",
+		replicaType, zoneReplica.ID, primary.ID, zoneReplica.Pod.Spec.NodeName, primary.Pod.Spec.NodeName, primaryIndex, replicaIndex, replicaNodeName, nodes)
+	return zoneReplicaIndex
 }
 
 func removeReplica(slice redis.Nodes, s int) redis.Nodes {
