@@ -251,36 +251,38 @@ func primaryIndex(primary *redis.Node, nodes []string) int {
 	return primaryIndex
 }
 
-func replicasInZone(primaryToReplicas map[string]redis.Nodes, primary *redis.Node, zone string) int {
-	replicasInZone := 0
-	for _, replica := range primaryToReplicas[primary.ID] {
-		if zone == replica.Zone {
-			replicasInZone++
+func isNodeNameUnique(nodes []string, replica *redis.Node) bool {
+	isUnique := true
+	for _, node := range nodes {
+		if node == replica.Pod.Spec.NodeName {
+			isUnique = false
+			break
 		}
 	}
-	return replicasInZone
+	return isUnique
 }
 
-func uniqueNodesInZone(zoneReplicas redis.Nodes) []string {
+func uniqueNodesInZone(primaryToReplicas map[string]redis.Nodes, zoneReplicas redis.Nodes, zone string) []string {
 	var nodes []string
 	for _, replica := range zoneReplicas {
-		isUnique := true
-		for _, node := range nodes {
-			if node == replica.Pod.Spec.NodeName {
-				isUnique = false
-				break
-			}
-		}
-		if isUnique {
+		if isNodeNameUnique(nodes, replica) {
 			nodes = append(nodes, replica.Pod.Spec.NodeName)
+		}
+	}
+	for _, replicas := range primaryToReplicas {
+		for _, replica := range replicas {
+			if zone == replica.Zone && isNodeNameUnique(nodes, replica) {
+				nodes = append(nodes, replica.Pod.Spec.NodeName)
+			}
 		}
 	}
 	sort.Strings(nodes)
 	return nodes
 }
 
-func selectOptimalZoneReplicaIndex(primary *redis.Node, zoneReplicas redis.Nodes, numReplicas int) int {
-	nodes := uniqueNodesInZone(zoneReplicas)
+func selectOptimalZoneReplicaIndex(primary *redis.Node, primaryToReplicas map[string]redis.Nodes, zoneReplicas redis.Nodes) int {
+	numReplicas := len(primaryToReplicas[primary.ID])
+	nodes := uniqueNodesInZone(primaryToReplicas, zoneReplicas, primary.Zone)
 	nodeName := nodes[(primaryIndex(primary, nodes)+numReplicas+1)%len(nodes)]
 	for i, replica := range zoneReplicas {
 		if nodeName == replica.Pod.Spec.NodeName {
@@ -314,7 +316,7 @@ func selectOptimalReplicas(zones []string, primary *redis.Node, primaryToReplica
 				}
 			}
 			nodeAdded = true
-			zoneReplicaIndex := selectOptimalZoneReplicaIndex(primary, zoneReplicas, replicasInZone(primaryToReplicas, primary, zone))
+			zoneReplicaIndex := selectOptimalZoneReplicaIndex(primary, primaryToReplicas, zoneReplicas)
 			glog.V(4).Infof("adding replica %s to primary %s", zoneReplicas[zoneReplicaIndex].ID, primary.ID)
 			primaryToReplicas[primary.ID] = append(primaryToReplicas[primary.ID], zoneReplicas[zoneReplicaIndex])
 			zoneToReplicas[zone] = removeReplica(zoneReplicas, zoneReplicaIndex)
