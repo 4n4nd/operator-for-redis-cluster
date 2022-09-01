@@ -332,6 +332,20 @@ func selectOptimalReplicas(zones []string, primary *redis.Node, primaryToReplica
 	return nodeAdded
 }
 
+func usedNodesByShard(primary *redis.Node, primaryToReplicas map[string]redis.Nodes) []string {
+	var nodes []string
+	// Add k8s node for the primary pod
+	nodes = append(nodes, primary.Pod.Spec.NodeName)
+
+	// Add k8s nodes for replica pods
+	for _, replica := range primaryToReplicas[primary.ID] {
+		if isNodeNameUnique(replica, nodes) {
+			nodes = append(nodes, replica.Pod.Spec.NodeName)
+		}
+	}
+	return nodes
+}
+
 func selectBestEffortReplicas(zones []string, primary *redis.Node, primaryToReplicas map[string]redis.Nodes, zoneToReplicas map[string]redis.Nodes, replicationFactor int32) {
 	zoneIndex := GetZoneIndex(zones, primary.Zone, primaryToReplicas[primary.ID])
 	numEmptyZones := 0
@@ -340,10 +354,19 @@ func selectBestEffortReplicas(zones []string, primary *redis.Node, primaryToRepl
 		zone := zones[zoneIndex]
 		zoneReplicas := zoneToReplicas[zone]
 		zoneIndex = (zoneIndex + 1) % len(zones)
+		selectedZoneReplicaIndex := 0
 		if len(zoneReplicas) > 0 {
-			glog.V(4).Infof("adding replica %s to primary %s", zoneReplicas[0].ID, primary.ID)
-			primaryToReplicas[primary.ID] = append(primaryToReplicas[primary.ID], zoneReplicas[0])
-			zoneToReplicas[zone] = zoneReplicas[1:]
+			// try assigning replica to a different k8s node than primary or other replicas
+			for selectedZoneReplicaIndex < len(zoneReplicas) {
+				if isNodeNameUnique(zoneReplicas[selectedZoneReplicaIndex], usedNodesByShard(primary, primaryToReplicas)) {
+					break
+				} else if selectedZoneReplicaIndex+1 < len(zoneReplicas) {
+					selectedZoneReplicaIndex++
+				}
+			}
+			glog.V(4).Infof("adding replica %s to primary %s", zoneReplicas[selectedZoneReplicaIndex].ID, primary.ID)
+			primaryToReplicas[primary.ID] = append(primaryToReplicas[primary.ID], zoneReplicas[selectedZoneReplicaIndex])
+			zoneToReplicas[zone] = append(zoneReplicas[:selectedZoneReplicaIndex], zoneReplicas[selectedZoneReplicaIndex+1:]...)
 		} else {
 			numEmptyZones++
 		}
