@@ -7,7 +7,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/glog v1.0.0
 	github.com/heptiolabs/healthcheck v0.0.0-20211123025425-613501dd5deb
-	github.com/mediocregopher/radix/v4 v4.1.0
+	github.com/mediocregopher/radix/v4 v4.1.1
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
