@@ -21,7 +21,7 @@ TAG?=$(shell git tag|tail -1)
 COMMIT=$(shell git rev-parse HEAD)
 DATE=$(shell date +%Y-%m-%d/%H:%M:%S)
 BUILDINFOPKG=github.com/IBM/operator-for-redis-cluster/pkg/utils
-LDFLAGS= -ldflags "-w -X ${BUILDINFOPKG}.TAG=${TAG} -X ${BUILDINFOPKG}.COMMIT=${COMMIT} -X ${BUILDINFOPKG}.OPERATOR_VERSION=${OPERATOR_VERSION} -X ${BUILDINFOPKG}.REDIS_VERSION=${REDIS_VERSION} -X ${BUILDINFOPKG}.BUILDTIME=${DATE} -s"
+LDFLAGS= -ldflags "-w -X ${BUILDINFOPKG}.TAG=${TAG} -X ${BUILDINFOPKG}.COMMIT=${COMMIT} -X ${BUILDINFOPKG}.OPERATOR_VERSION=${OPERATOR_VERSION} -X ${BUILDINFOPKG}.REDIS_VERSION=${REDIS_VERSION_6}-${REDIS_VERSION_7} -X ${BUILDINFOPKG}.BUILDTIME=${DATE} -s"
 
 all: build
 
@@ -38,8 +38,8 @@ buildlinux-%: ${SOURCES}
 
 container-%: buildlinux-%
 	@if [ "$*" = "node" ]; then\
-		docker build -t $(PREFIX)$*-for-redis:$(TAG)-$(REDIS_VERSION_6) --build-arg "REDIS_VERSION=$(REDIS_VERSION_6)" -f Dockerfile.$* . ;\
-		docker build -t $(PREFIX)$*-for-redis:$(TAG)-$(REDIS_VERSION_7) --build-arg "REDIS_VERSION=$(REDIS_VERSION_7)" -f Dockerfile.$* . ;\
+		docker build -t $(PREFIX)$*-for-redis:$(REDIS_VERSION_6)-$(TAG) --build-arg "REDIS_VERSION=$(REDIS_VERSION_6)" -f Dockerfile.$* . ;\
+		docker build -t $(PREFIX)$*-for-redis:$(REDIS_VERSION_7)-$(TAG) --build-arg "REDIS_VERSION=$(REDIS_VERSION_7)" -f Dockerfile.$* . ;\
 	else\
 		docker build -t $(PREFIX)$*-for-redis:$(TAG) -f Dockerfile.$* . ;\
     fi

@@ -76,7 +76,7 @@ jobs:
         with:
           file: Dockerfile.node
           push: true
-          tags: ${{ steps.meta.outputs.tags }}-${{ env.REDIS_VERSION_6 }}
+          tags: ${{ env.REDIS_VERSION_6 }}-${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
@@ -90,7 +90,7 @@ jobs:
         with:
           file: Dockerfile.node
           push: true
-          tags: ${{ steps.meta.outputs.tags }}-${{ env.REDIS_VERSION_7 }}
+          tags: ${{ env.REDIS_VERSION_7 }}-${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
