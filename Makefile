@@ -3,6 +3,9 @@ ARTIFACT_INITCONTAINER=init-container
 
 PREFIX=ibmcom/
 
+REDIS_VERSION_6=6.2.7
+REDIS_VERSION_7=7.0.4
+
 SOURCES := $(shell find . ! -name "*_test.go" -name '*.go')
 
 CMDBINS := operator node metrics
@@ -34,7 +37,12 @@ buildlinux-%: ${SOURCES}
 	CGO_ENABLED=0 GOOS=linux go build -installsuffix cgo ${LDFLAGS} -o docker/$*/$* ./cmd/$*/main.go
 
 container-%: buildlinux-%
-	docker build -t $(PREFIX)$*-for-redis:$(TAG) -f Dockerfile.$* .
+	@if [ "$*" = "node" ]; then\
+		docker build -t $(PREFIX)$*-for-redis:$(TAG)-$(REDIS_VERSION_6) --build-arg "REDIS_VERSION=$(REDIS_VERSION_6)" -f Dockerfile.$* . ;\
+		docker build -t $(PREFIX)$*-for-redis:$(TAG)-$(REDIS_VERSION_7) --build-arg "REDIS_VERSION=$(REDIS_VERSION_7)" -f Dockerfile.$* . ;\
+	else\
+		docker build -t $(PREFIX)$*-for-redis:$(TAG) -f Dockerfile.$* . ;\
+    fi
 
 build: $(addprefix build-,$(CMDBINS))
 
