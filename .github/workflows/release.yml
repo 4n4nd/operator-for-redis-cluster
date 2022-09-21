@@ -8,7 +8,8 @@ on:
 env:
   GO_VERSION: 1.17
   HELM_VERSION: v3.6.3
-  REDIS_VERSION: 6.2.7
+  REDIS_VERSION_6: 6.2.7
+  REDIS_VERSION_7: 7.0.4
   CRD_PATH: charts/operator-for-redis/crds/db.ibm.com_redisclusters.yaml
   CRD_DIFF: crd.diff
 
@@ -70,17 +71,32 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push cluster node image
+      - name: Build and push cluster node image Redis v6.2.x
         uses: docker/build-push-action@v3
         with:
           file: Dockerfile.node
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}-${{ env.REDIS_VERSION_6 }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             OPERATOR_VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
             REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+            REDIS_VERSION=${{ env.REDIS_VERSION_6 }}
+
+      
+      - name: Build and push cluster node image Redis v7.0.x
+        uses: docker/build-push-action@v3
+        with:
+          file: Dockerfile.node
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-${{ env.REDIS_VERSION_7 }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            OPERATOR_VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+            REDIS_VERSION=${{ env.REDIS_VERSION_7 }}
 
   metrics:
     runs-on: ubuntu-latest
@@ -139,7 +155,7 @@ jobs:
       - name: Package node-for-redis chart
         env:
           OPERATOR_VERSION: ${{ needs.operator.outputs.version }}
-        run: helm package charts/node-for-redis --version=$OPERATOR_VERSION --app-version=${{ env.REDIS_VERSION }} --destination helm-releases
+        run: helm package charts/node-for-redis --version=$OPERATOR_VERSION --app-version=${{ env.REDIS_VERSION_6 }}-${{ env.REDIS_VERSION_7 }} --destination helm-releases
 
       - name: Push helm charts
         env:
