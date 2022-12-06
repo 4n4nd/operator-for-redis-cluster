@@ -244,9 +244,20 @@ func selectOptimalReplicas(zones []string, primary *redis.Node, primaryToReplica
 	nodeAdded := false
 	i := 0
 	for i < len(zones) && len(primaryToReplicas[primary.ID]) < int(replicationFactor) {
-		zone := zones[zoneIndex]
-		zoneReplicas := zoneToReplicas[zone]
+		mostAvailableZone := zones[zoneIndex]
+		zoneAvailability := len(zoneToReplicas[mostAvailableZone])
+		// select the next index in the zones list
 		zoneIndex = (zoneIndex + 1) % len(zones)
+		// choose the zone with most available replicas which is not the primary zone
+		// and no other replicas from that primary are present on it
+		for zone := range zoneToReplicas {
+			if primary.Zone != zone && zoneAvailability < len(zoneToReplicas[zone]) && !SameZone(zone, primaryToReplicas[primary.ID]) {
+				zoneAvailability = len(zoneToReplicas[zone])
+				mostAvailableZone = zone
+			}
+		}
+		zone := mostAvailableZone
+		zoneReplicas := zoneToReplicas[zone]
 		if len(zoneReplicas) > 0 {
 			// if RF < # of zones, we can achieve optimal placement
 			if int(replicationFactor) < len(zones) {
