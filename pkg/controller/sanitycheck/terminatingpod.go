@@ -31,11 +31,22 @@ func FixTerminatingPods(cluster *rapi.RedisCluster, podControl pod.RedisClusterC
 			// ignore pod without deletion timestamp
 			continue
 		}
+		podLabels := p.GetLabels()
+		if podLabels["redis-operator.k8s.io/marked-for-termination"] == "true" {
+			continue
+		}
 		maxTime := p.DeletionTimestamp.Add(maxDuration) // adding MaxDuration for configuration
 		if maxTime.Before(now) {
 			actionDone = true
 			// it means that this pod should already been deleted since a wild
 			if !dryRun {
+				podLabels["redis-operator.k8s.io/marked-for-termination"] = "true"
+
+				// delete the "cluster-name" label so operator disassociates pods with the redis cluster
+				delete(podLabels, "redis-operator.k8s.io/cluster-name")
+				if err := podControl.SetPodLabels(p, podLabels); err != nil {
+					errs = append(errs, err)
+				}
 				if err := podControl.DeletePod(cluster, p.Name); err != nil {
 					errs = append(errs, err)
 				}

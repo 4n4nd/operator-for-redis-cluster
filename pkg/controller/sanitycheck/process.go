@@ -35,7 +35,7 @@ func RunSanityChecks(ctx context.Context, admin redis.AdminInterface, config *co
 	}
 
 	// delete pods that are stuck in terminating state
-	if actionDone, err = FixTerminatingPods(cluster, podControl, 5*time.Minute, dryRun); err != nil {
+	if actionDone, err = FixTerminatingPods(cluster, podControl, 1*time.Minute, dryRun); err != nil {
 		return actionDone, err
 	} else if actionDone {
 		glog.V(2).Infof("FixTerminatingPods executed an action on the cluster (dryRun: %v)", dryRun)

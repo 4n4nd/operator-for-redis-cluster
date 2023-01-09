@@ -31,6 +31,8 @@ type RedisClusterControlInterface interface {
 	DeletePod(redisCluster *rapi.RedisCluster, podName string) error
 	// DeletePodNow used to delete now (force) a pod from its name
 	DeletePodNow(redisCluster *rapi.RedisCluster, podName string) error
+	// SetPodLabels used to set a new map of labels to pod
+	SetPodLabels(pod kapiv1.Pod, podLabels map[string]string) error
 }
 
 var _ RedisClusterControlInterface = &RedisClusterControl{}
@@ -74,6 +76,16 @@ func (p *RedisClusterControl) CreatePod(redisCluster *rapi.RedisCluster) (*kapiv
 		return nil, err
 	}
 	return pod, nil
+}
+
+// SetPodLabels used to set a new map of labels to pod
+func (p *RedisClusterControl) SetPodLabels(pod kapiv1.Pod, podLabels map[string]string) error {
+
+	pod.SetLabels(podLabels)
+	if err := p.KubeClient.Update(context.Background(), &pod); err != nil {
+		return err
+	}
+	return nil
 }
 
 // CreatePodOnNode used to create a Pod on the given node
