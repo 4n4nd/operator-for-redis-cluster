@@ -224,6 +224,11 @@ func (f *Fakecontrol) DeletePodNow(redisCluster *rapi.RedisCluster, podName stri
 	return nil
 }
 
+// SetPodLabels used to set labels for a pod
+func (f *Fakecontrol) SetPodLabels(pod kapiv1.Pod, labels map[string]string) error {
+	return nil
+}
+
 func newPod(name, vmName, ip string) kapiv1.Pod {
 	return kapiv1.Pod{ObjectMeta: metav1.ObjectMeta{Name: name}, Spec: kapiv1.PodSpec{NodeName: vmName}, Status: kapiv1.PodStatus{PodIP: ip}}
 }
